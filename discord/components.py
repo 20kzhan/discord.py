@@ -170,6 +170,10 @@ class Button(Component):
         The label of the button, if any.
     emoji: Optional[:class:`PartialEmoji`]
         The emoji of the button, if available.
+    sku_id: Optional[:class:`int`]
+        The SKU ID this button sends you to, if available.
+
+        .. versionadded:: 2.4
     """
 
     __slots__: Tuple[str, ...] = (
@@ -179,6 +183,7 @@ class Button(Component):
         'disabled',
         'label',
         'emoji',
+        'sku_id',
     )
 
     __repr_info__: ClassVar[Tuple[str, ...]] = __slots__
@@ -191,9 +196,14 @@ class Button(Component):
         self.label: Optional[str] = data.get('label')
         self.emoji: Optional[PartialEmoji]
         try:
-            self.emoji = PartialEmoji.from_dict(data['emoji'])
+            self.emoji = PartialEmoji.from_dict(data['emoji'])  # pyright: ignore[reportTypedDictNotRequiredAccess]
         except KeyError:
             self.emoji = None
+
+        try:
+            self.sku_id: Optional[int] = int(data['sku_id'])  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        except KeyError:
+            self.sku_id = None
 
     @property
     def type(self) -> Literal[ComponentType.button]:
@@ -206,6 +216,9 @@ class Button(Component):
             'style': self.style.value,
             'disabled': self.disabled,
         }
+
+        if self.sku_id:
+            payload['sku_id'] = str(self.sku_id)
 
         if self.label:
             payload['label'] = self.label
@@ -402,7 +415,7 @@ class SelectOption:
     @classmethod
     def from_dict(cls, data: SelectOptionPayload) -> SelectOption:
         try:
-            emoji = PartialEmoji.from_dict(data['emoji'])
+            emoji = PartialEmoji.from_dict(data['emoji'])  # pyright: ignore[reportTypedDictNotRequiredAccess]
         except KeyError:
             emoji = None
 
