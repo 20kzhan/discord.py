@@ -177,7 +177,7 @@ class View:
         children = []
         for func in self.__view_children_items__:
             item: Item = func.__discord_ui_model_type__(**func.__discord_ui_model_kwargs__)
-            item.callback = _ViewCallback(func, self, item)
+            item.callback = _ViewCallback(func, self, item)  # type: ignore
             item._view = self
             setattr(self, func.__name__, item)
             children.append(item)
@@ -213,6 +213,11 @@ class View:
 
             # Wait N seconds to see if timeout data has been refreshed
             await asyncio.sleep(self.__timeout_expiry - now)
+
+    def is_dispatchable(self) -> bool:
+        # this is used by webhooks to check whether a view requires a state attached
+        # or not, this simply is, whether a view has a component other than a url button
+        return any(item.is_dispatchable() for item in self.children)
 
     def to_components(self) -> List[Dict[str, Any]]:
         def key(item: Item) -> int:
@@ -615,16 +620,15 @@ class ViewStore:
 
         view = View.from_message(interaction.message, timeout=None)
 
-        base_item_index: Optional[int] = None
-        for index, child in enumerate(view._children):
-            if child.type.value == component_type and getattr(child, 'custom_id', None) == custom_id:
-                base_item_index = index
-                break
-
-        if base_item_index is None:
+        try:
+            base_item_index, base_item = next(
+                (index, child)
+                for index, child in enumerate(view._children)
+                if child.type.value == component_type and getattr(child, 'custom_id', None) == custom_id
+            )
+        except StopIteration:
             return
 
-        base_item = view._children[base_item_index]
         try:
             item = await factory.from_custom_id(interaction, base_item, match)
         except Exception:
@@ -634,6 +638,7 @@ class ViewStore:
         # Swap the item in the view with our new dynamic item
         view._children[base_item_index] = item
         item._view = view
+        item._rendered_row = base_item._rendered_row
         item._refresh_state(interaction, interaction.data)  # type: ignore
 
         try:
@@ -667,8 +672,8 @@ class ViewStore:
         msg = interaction.message
         if msg is not None:
             message_id = msg.id
-            if msg.interaction:
-                interaction_id = msg.interaction.id
+            if msg.interaction_metadata:
+                interaction_id = msg.interaction_metadata.id
 
         key = (component_type, custom_id)
 

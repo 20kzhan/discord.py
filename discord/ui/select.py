@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+
 from __future__ import annotations
 from typing import (
     Any,
@@ -69,7 +70,7 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeAlias, Self, TypeGuard
+    from typing_extensions import TypeAlias, TypeGuard
 
     from .view import View
     from ..types.components import SelectMenu as SelectMenuPayload
@@ -330,7 +331,9 @@ class BaseSelect(Item[V]):
         values = selected_values.get({})
         payload: List[PossibleValue]
         try:
-            resolved = Namespace._get_resolved_items(interaction, data['resolved'])
+            resolved = Namespace._get_resolved_items(
+                interaction, data['resolved']  # pyright: ignore[reportTypedDictNotRequiredAccess]
+            )
             payload = list(resolved.values())
         except KeyError:
             payload = data.get("values", [])  # type: ignore
@@ -342,7 +345,7 @@ class BaseSelect(Item[V]):
         return True
 
     @classmethod
-    def from_component(cls, component: SelectMenu) -> Self:
+    def from_component(cls, component: SelectMenu) -> BaseSelect[V]:
         type_to_cls: Dict[ComponentType, Type[BaseSelect[Any]]] = {
             ComponentType.string_select: Select,
             ComponentType.user_select: UserSelect,
@@ -499,7 +502,7 @@ class Select(BaseSelect[V]):
             The number of options exceeds 25.
         """
 
-        if len(self._underlying.options) > 25:
+        if len(self._underlying.options) >= 25:
             raise ValueError('maximum number of options already provided')
 
         self._underlying.options.append(option)
@@ -887,7 +890,7 @@ class ChannelSelect(BaseSelect[V]):
 @overload
 def select(
     *,
-    cls: Type[SelectT] = Select[V],
+    cls: Type[SelectT] = Select[Any],
     options: List[SelectOption] = MISSING,
     channel_types: List[ChannelType] = ...,
     placeholder: Optional[str] = ...,
@@ -903,7 +906,7 @@ def select(
 @overload
 def select(
     *,
-    cls: Type[UserSelectT] = UserSelect[V],
+    cls: Type[UserSelectT] = UserSelect[Any],
     options: List[SelectOption] = MISSING,
     channel_types: List[ChannelType] = ...,
     placeholder: Optional[str] = ...,
@@ -920,7 +923,7 @@ def select(
 @overload
 def select(
     *,
-    cls: Type[RoleSelectT] = RoleSelect[V],
+    cls: Type[RoleSelectT] = RoleSelect[Any],
     options: List[SelectOption] = MISSING,
     channel_types: List[ChannelType] = ...,
     placeholder: Optional[str] = ...,
@@ -937,7 +940,7 @@ def select(
 @overload
 def select(
     *,
-    cls: Type[ChannelSelectT] = ChannelSelect[V],
+    cls: Type[ChannelSelectT] = ChannelSelect[Any],
     options: List[SelectOption] = MISSING,
     channel_types: List[ChannelType] = ...,
     placeholder: Optional[str] = ...,
@@ -954,7 +957,7 @@ def select(
 @overload
 def select(
     *,
-    cls: Type[MentionableSelectT] = MentionableSelect[V],
+    cls: Type[MentionableSelectT] = MentionableSelect[Any],
     options: List[SelectOption] = MISSING,
     channel_types: List[ChannelType] = MISSING,
     placeholder: Optional[str] = ...,
@@ -970,7 +973,7 @@ def select(
 
 def select(
     *,
-    cls: Type[BaseSelectT] = Select[V],
+    cls: Type[BaseSelectT] = Select[Any],
     options: List[SelectOption] = MISSING,
     channel_types: List[ChannelType] = MISSING,
     placeholder: Optional[str] = None,
